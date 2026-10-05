@@ -1,27 +1,43 @@
 {% extends "base.html" %}
 {% block content %}
+{% set status_label = {"success": "Backup succeeded", "failed": "Backup failed", "running": "Backup running"}.get(rec.status, rec.status) %}
 <section class="card">
   <div class="card-header">
-    <h2>Run {{ rec.id }}</h2>
-    <a class="btn" href="/backups">← all runs</a>
+    <div>
+      <h2>Run <span class="mono">{{ rec.id }}</span></h2>
+      <p class="muted" style="margin: 6px 0 0">{{ db.name if db else rec.db_id }}</p>
+    </div>
+    <div>
+      <span class="badge badge-{{ rec.status }}" role="status" aria-atomic="true">
+        <span class="dot" aria-hidden="true"></span>
+        {{ status_label }}
+      </span>
+      <a class="btn btn-ghost btn-sm" href="/backups" style="margin-left: 8px">← all runs</a>
+    </div>
   </div>
+
   <dl class="kv">
-    <dt>database</dt><dd>{{ db.name if db else rec.db_id }} <code class="muted">{{ rec.db_id }}</code></dd>
-    <dt>status</dt><dd><span class="badge badge-{{ rec.status }}">{{ rec.status }}</span></dd>
-    <dt>started</dt><dd>{{ rec.started_at | format_dt }}</dd>
-    <dt>finished</dt><dd>{{ rec.finished_at | format_dt }}</dd>
-    <dt>size</dt><dd>{{ rec.size_bytes | human_size }}</dd>
-    <dt>storage</dt><dd>{{ rec.storage_kind }}</dd>
-    <dt>location</dt><dd><code>{{ rec.location }}</code></dd>
-    <dt>engine</dt><dd>{{ rec.engine_version }}</dd>
-    <dt>schema_objects</dt><dd>{{ rec.schema_objects_count }}</dd>
-    <dt>triggered_by</dt><dd>{{ rec.triggered_by }}</dd>
+    <dt>Status</dt><dd>{{ rec.status }}</dd>
+    <dt>Started</dt><dd>{{ rec.started_at | format_dt }}</dd>
+    <dt>Finished</dt><dd>{{ rec.finished_at | format_dt }}</dd>
+    <dt>Size</dt><dd>{{ rec.size_bytes | human_size }}</dd>
+    <dt>Storage</dt><dd>{{ rec.storage_kind }}</dd>
+    <dt>Location</dt><dd class="mono">{{ rec.location }}</dd>
+    <dt>Engine</dt><dd>{{ rec.engine_version }}</dd>
+    <dt>Schema objects</dt><dd>{{ rec.schema_objects_count }}</dd>
+    <dt>Triggered by</dt><dd>{{ rec.triggered_by }}</dd>
     {% if rec.error %}
-    <dt>error</dt><dd class="error">{{ rec.error }}</dd>
+    <dt>Error</dt><dd class="error">{{ rec.error }}</dd>
     {% endif %}
   </dl>
+
   {% if download_url %}
-  <p><a class="btn" href="{{ download_url }}">Download</a> <span class="muted">S3 URLs expire in 5 minutes.</span></p>
+  <p style="margin-top: var(--space-lg)">
+    <a class="btn" href="{{ download_url }}">Download archive</a>
+    {% if rec.storage_kind == "s3" %}
+    <small class="muted">· Signed URL expires in 5 minutes</small>
+    {% endif %}
+  </p>
   {% endif %}
 </section>
 {% endblock %}

@@ -1,69 +1,104 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="card">
-  <div class="card-header"><h2>New database</h2></div>
+<section class="card" style="max-width: 720px">
+  <div class="card-header">
+    <h2>New database</h2>
+  </div>
+
   <form action="/databases/new" method="post" class="form">
-    <label>Kind
-      <select name="kind" id="kind-select">
-        <option value="mongo">MongoDB</option>
-        <option value="postgres">PostgreSQL</option>
-        <option value="mariadb" selected>MariaDB</option>
-      </select>
-    </label>
-    <label>Name <input name="name" required></label>
-    <label>Host <input name="host" value="127.0.0.1" required></label>
-    <label>Port <input name="port" type="number" required></label>
-    <label>User <input name="user"></label>
-    <label>Password <input name="password" type="password"></label>
-    <label>Database name <input name="database" required></label>
-    <label class="checkbox"><input type="checkbox" name="ssl"> SSL</label>
+    <fieldset>
+      <legend>Engine</legend>
+      <label>Kind
+        <select name="kind" id="kind-select">
+          <option value="mongo">MongoDB</option>
+          <option value="postgres">PostgreSQL</option>
+          <option value="mariadb" selected>MariaDB</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Identity</legend>
+      <label>Name
+        <input name="name" required placeholder="orders-prod">
+        <span class="help">A human-readable label shown in the dashboard.</span>
+      </label>
+      <label>Database name
+        <input name="database" required placeholder="orders">
+        <span class="help">The schema/database to back up.</span>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Connection</legend>
+      <label>Host <input name="host" value="127.0.0.1" required></label>
+      <label>Port <input name="port" type="number" min="1" max="65535" required></label>
+      <label>User <input name="user" required autocomplete="username"></label>
+      <label>Password <input name="password" type="password" autocomplete="new-password"></label>
+      <label class="checkbox"><input type="checkbox" name="ssl"> Use TLS</label>
+    </fieldset>
 
     <fieldset id="kind-mongo" class="kind-block" hidden>
-      <legend>MongoDB</legend>
-      <label>authSource <input name="mongo_auth_source"></label>
-      <label>replicaSet <input name="mongo_rs"></label>
+      <legend>MongoDB options</legend>
+      <label>authSource <input name="mongo_auth_source" placeholder="admin"></label>
+      <label>replicaSet <input name="mongo_rs" placeholder="rs0"></label>
     </fieldset>
+
     <fieldset id="kind-postgres" class="kind-block" hidden>
-      <legend>PostgreSQL</legend>
-      <label>default schema <input name="pg_schema" placeholder="public"></label>
+      <legend>Postgres options</legend>
+      <label>Default schema <input name="pg_schema" placeholder="public"></label>
     </fieldset>
+
     <fieldset id="kind-mariadb" class="kind-block">
-      <legend>MariaDB</legend>
+      <legend>MariaDB options</legend>
       <label class="checkbox"><input type="checkbox" name="mariadb_full_dump"> --all-databases (full server)</label>
       <label class="checkbox"><input type="checkbox" name="mariadb_ssl_disabled" checked> Disable SSL</label>
     </fieldset>
 
-    <fieldset class="kind-block">
+    <fieldset>
       <legend>Storage</legend>
       <label class="radio">
         <input type="radio" name="storage" value="local" checked> Local filesystem
       </label>
       <label class="radio">
-        <input type="radio" name="storage" value="s3"> S3-compatible (bucket)
+        <input type="radio" name="storage" value="s3"> S3-compatible bucket
       </label>
+
       <div class="s3-block">
         <label>Bucket <input name="s3_bucket"></label>
         <label>Region <input name="s3_region" value="us-east-1"></label>
-        <label>Endpoint (R2/MinIO; blank = AWS) <input name="s3_endpoint"></label>
-        <label>Access key ID <input name="s3_ak"></label>
-        <label>Secret access key <input name="s3_sk" type="password"></label>
-        <label>SSE <select name="s3_sse"><option>AES256</option><option>aws:kms</option><option></option></select></label>
+        <label>Endpoint (R2/MinIO; blank for AWS) <input name="s3_endpoint"></label>
+        <label>Access key ID <input name="s3_ak" autocomplete="off"></label>
+        <label>Secret access key <input name="s3_sk" type="password" autocomplete="off"></label>
+        <label>SSE
+          <select name="s3_sse">
+            <option value="AES256">AES256 (default)</option>
+            <option value="aws:kms">aws:kms</option>
+            <option value="">none</option>
+          </select>
+        </label>
       </div>
     </fieldset>
 
-    <button class="btn" type="submit">Create</button>
+    <div class="row gap-2">
+      <button class="btn" type="submit">Create database</button>
+      <a class="btn btn-ghost" href="/databases">Cancel</a>
+    </div>
   </form>
 </section>
+
 <script>
-  // show/hide kind blocks
-  const sel = document.getElementById('kind-select');
-  function update() {
-    document.querySelectorAll('.kind-block').forEach(el => el.hidden = true);
-    const k = sel.value;
-    const tgt = document.getElementById('kind-' + k);
-    if (tgt) tgt.hidden = false;
-  }
-  sel.addEventListener('change', update);
-  update();
+  // Show/hide kind blocks
+  (function () {
+    var sel = document.getElementById('kind-select');
+    function update() {
+      document.querySelectorAll('.kind-block').forEach(function (el) { el.hidden = true; });
+      var k = sel.value;
+      var tgt = document.getElementById('kind-' + k);
+      if (tgt) tgt.hidden = false;
+    }
+    sel.addEventListener('change', update);
+    update();
+  })();
 </script>
 {% endblock %}

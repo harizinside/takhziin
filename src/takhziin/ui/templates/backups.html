@@ -1,29 +1,60 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="card">
-  <div class="card-header"><h2>Backups</h2></div>
+  <div class="card-header">
+    <h2>Backups</h2>
+    <span class="muted">{{ runs | length }} recent</span>
+  </div>
   {% if runs %}
-  <table class="table">
-    <thead>
-      <tr><th>id</th><th>db</th><th>status</th><th>started</th><th>finished</th><th>size</th><th>storage</th><th></th></tr>
-    </thead>
-    <tbody>
-      {% for r in runs %}
-      <tr>
-        <td><code>{{ r.id }}</code></td>
-        <td>{{ databases | selectattr('id', 'equalto', r.db_id) | map(attribute='name') | first or r.db_id }}</td>
-        <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
-        <td>{{ r.started_at | format_dt }}</td>
-        <td>{{ r.finished_at | format_dt }}</td>
-        <td>{{ r.size_bytes | human_size }}</td>
-        <td>{{ r.storage_kind }}</td>
-        <td><a href="/backups/{{ r.id }}">open</a></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Status</th>
+          <th scope="col">Database</th>
+          <th scope="col">Started</th>
+          <th scope="col">Finished</th>
+          <th scope="col">Size</th>
+          <th scope="col">Storage</th>
+          <th scope="col"><span class="sr-only">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in runs %}
+        {% set status_label = {"success": "Backup succeeded", "failed": "Backup failed", "running": "Backup running"}.get(r.status, r.status) %}
+        <tr>
+          <td>
+            <span class="badge badge-{{ r.status }}" role="status" aria-atomic="true">
+              <span class="dot" aria-hidden="true"></span>
+              {{ status_label }}
+            </span>
+          </td>
+          <td>
+            {% set db_name = databases | selectattr('id', 'equalto', r.db_id) | map(attribute='name') | first %}
+            {{ db_name if db_name else r.db_id }}
+          </td>
+          <td>{{ r.started_at | format_dt }}</td>
+          <td>{{ r.finished_at | format_dt }}</td>
+          <td>{{ r.size_bytes | human_size }}</td>
+          <td>{{ r.storage_kind }}</td>
+          <td class="row-actions">
+            <a class="btn btn-ghost btn-sm" href="/backups/{{ r.id }}">Open</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p class="muted">No runs yet.</p>
+  <div class="empty">
+    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M21 16.5v2.25A2.25 2.25 0 0118.75 21H5.25A2.25 2.25 0 013 18.75V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25v11.25z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5l4.5-4.5 4.5 4.5 4.5-4.5 4.5 4.5"/>
+    </svg>
+    <h3>No runs yet</h3>
+    <p>Trigger a backup or wait for the next cron tick — entries will appear here as soon as they're recorded.</p>
+    <a class="btn btn-ghost" href="/databases">Go to databases</a>
+  </div>
   {% endif %}
 </section>
 {% endblock %}

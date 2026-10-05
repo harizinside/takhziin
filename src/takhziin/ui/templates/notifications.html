@@ -1,36 +1,84 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="card">
-  <div class="card-header"><h2>Notifications</h2></div>
-  {% if cfg %}
-  <table class="kv">
-    <tr><td><strong>kind</strong></td><td>{{ cfg.kind }}</td></tr>
-    <tr><td><strong>bot_token</strong></td><td><code>{{ masked }}</code></td></tr>
-    <tr><td><strong>chat_id</strong></td><td><code>{{ cfg.chat_id }}</code></td></tr>
-    <tr><td><strong>events</strong></td><td>{{ cfg.events | join(", ") }}</td></tr>
-  </table>
-  {% endif %}
+  <div class="card-header">
+    <h2>Telegram notifications</h2>
+    {% if cfg %}
+      {% if cfg.bot_token %}
+      <span class="pill pill-ok" role="status" aria-atomic="true">
+        <span class="dot" aria-hidden="true"></span>
+        Configured — {{ cfg.events | join(", ") }}
+      </span>
+      {% endif %}
+  </div>
+
+  <div class="kv" style="margin-top: 0">
+    <dt>Bot token</dt><dd class="mono">{{ masked }}</dd>
+    <dt>Chat ID</dt><dd class="mono">{{ cfg.chat_id }}</dd>
+    <dt>Events</dt><dd>{{ cfg.events | join(", ") }}</dd>
+    <dt>Proxy URL</dt><dd>{{ "configured" if cfg.proxy_url else "none" }}</dd>
+  </div>
+    {% else %}
+    <span class="pill pill-mute" role="status" aria-atomic="true">
+      <span class="dot" aria-hidden="true"></span>
+      Not configured
+    </span>
+  </div>
+    {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h2>{% if cfg %}Update Telegram bot{% else %}Configure Telegram bot{% endif %}</h2>
+  </div>
 
   <form action="/notifications/save" method="post" class="form">
-    <h3>Configure Telegram bot</h3>
-    <label>Bot token <input name="bot_token" type="password" required></label>
-    <label>Chat ID <input name="chat_id" placeholder="-1001234567890" required></label>
-    <label>Proxy URL (http:// or socks5://) <input name="proxy_url"></label>
-    <label class="checkbox"><input type="checkbox" name="on_success" {% if not cfg or "success" in cfg.events %}checked{% endif %}> On success</label>
-    <label class="checkbox"><input type="checkbox" name="on_failure" {% if not cfg or "failure" in cfg.events %}checked{% endif %}> On failure</label>
-    <button class="btn" type="submit">Save</button>
-  </form>
+    <label>Bot token
+      <input name="bot_token" type="password" placeholder="123456:ABCDEF..." {% if not cfg %}required{% endif %} autocomplete="off">
+      <span class="help">Get this from <code>@BotFather</code> on Telegram.</span>
+    </label>
+    <label>Chat ID
+      <input name="chat_id" placeholder="-1001234567890" {% if not cfg %}required{% endif %} inputmode="numeric" pattern="-?\d+">
+      <span class="help">User ID, group ID (negative), or channel ID.</span>
+    </label>
+    <label>Proxy URL <small class="help" style="font-weight: 400; margin-left: 4px">(optional)</small>
+      <input name="proxy_url" placeholder="http://127.0.0.1:3128" autocomplete="off">
+      <span class="help">Used for outbound requests to <code>api.telegram.org</code>.</span>
+    </label>
 
-  <div class="row" style="gap:8px;margin-top:12px">
-    <form action="/notifications/test" method="post" style="display:inline">
-      <button class="btn btn-ghost" type="submit">Send test</button>
-    </form>
-    {% if cfg %}
-    <form action="/notifications/clear" method="post" style="display:inline"
-          onsubmit="return confirm('Clear notifier config?')">
-      <button class="btn btn-danger" type="submit">Clear</button>
-    </form>
-    {% endif %}
-  </div>
+    <div class="label-row">
+      <label>Events</label>
+    </div>
+    <div class="row gap-2">
+      <label class="checkbox">
+        <input type="checkbox" name="on_success" {% if not cfg or "success" in cfg.events %}checked{% endif %}>
+        On success
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" name="on_failure" {% if not cfg or "failure" in cfg.events %}checked{% endif %}>
+        On failure
+      </label>
+    </div>
+
+    <div class="row gap-2" style="margin-top: var(--space-sm)">
+      <button class="btn" type="submit">Save</button>
+    </div>
+  </form>
 </section>
+
+{% if cfg %}
+<section class="card">
+  <div class="card-header">
+    <h2>Test</h2>
+  </div>
+  <p class="muted">Send a synthetic message to verify the bot is reachable.</p>
+  <form action="/notifications/test" method="post" style="display:inline">
+    <button class="btn btn-ghost btn-sm" type="submit">Send test message</button>
+  </form>
+  <form action="/notifications/clear" method="post" style="display:inline; margin-left: 8px"
+        onsubmit="return confirm('Clear notifier config?')">
+    <button class="btn btn-danger btn-sm" type="submit">Clear configuration</button>
+  </form>
+</section>
+{% endif %}
 {% endblock %}

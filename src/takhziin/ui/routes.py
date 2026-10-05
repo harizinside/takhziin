@@ -67,6 +67,7 @@ def dashboard(request: Request) -> HTMLResponse:
             "ok_24h": ok,
             "failed_24h": failed,
             "last_10": last_10,
+            "databases": state.databases,
             "telegram_status": telegram_status,
         },
     )

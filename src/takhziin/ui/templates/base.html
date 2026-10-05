@@ -7,17 +7,21 @@
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">takhziin</div>
-    <nav class="nav">
-      <a href="/">Dashboard</a>
-      <a href="/databases">Databases</a>
-      <a href="/backups">Backups</a>
-      <a href="/schedules">Schedules</a>
-      <a href="/notifications">Notifications</a>
-    </nav>
+  <a href="#main" class="sr-only">Skip to main content</a>
+  <header class="topbar" role="banner">
+    <a href="/" class="brand" aria-label="takhziin home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>takhziin</span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+        <a href="/" {% if title == "takhziin" %}aria-current="page"{% endif %}>Dashboard</a>
+        <a href="/databases" {% if title == "Databases" %}aria-current="page"{% endif %}>Databases</a>
+        <a href="/backups" {% if title == "Backups" or title.startswith("Run ") %}aria-current="page"{% endif %}>Backups</a>
+        <a href="/schedules" {% if title == "Schedules" %}aria-current="page"{% endif %}>Schedules</a>
+        <a href="/notifications" {% if title == "Notifications" %}aria-current="page"{% endif %}>Notifications</a>
+      </nav>
   </header>
-  <main class="container">
+  <main class="container" id="main" role="main">
     {% block content %}{% endblock %}
   </main>
   <script src="/static/app.js"></script>

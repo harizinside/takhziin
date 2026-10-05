@@ -1,40 +1,72 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="card">
-  <div class="card-header"><h2>Schedules</h2></div>
+  <div class="card-header">
+    <h2>Schedules</h2>
+  </div>
 
-  <form action="/schedules/new" method="post" class="form-inline">
-    <select name="db_id">
-      {% for db in databases %}
-      <option value="{{ db.id }}">{{ db.name }} ({{ db.kind }})</option>
-      {% endfor %}
-    </select>
-    <input name="cron" placeholder="0 3 * * *" required>
-    <button class="btn" type="submit">Add</button>
+  <form action="/schedules/new" method="post" class="form-inline" aria-label="Add a schedule">
+    <label>Database
+      <select name="db_id" required>
+        {% for db in databases %}
+        <option value="{{ db.id }}">{{ db.name }} ({{ db.kind }})</option>
+        {% else %}
+        <option value="" disabled selected>No databases registered</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Cron
+      <input name="cron" placeholder="0 3 * * *" required pattern=".+ .+ .+ .+ .+">
+    </label>
+    <button class="btn" type="submit">Add schedule</button>
   </form>
 
   {% if schedules %}
-  <table class="table">
-    <thead><tr><th>id</th><th>db</th><th>cron</th><th>enabled</th><th></th></tr></thead>
-    <tbody>
-      {% for s in schedules %}
-      <tr>
-        <td><code>{{ s.id }}</code></td>
-        <td>{{ databases | selectattr('id', 'equalto', s.db_id) | map(attribute='name') | first or s.db_id }}</td>
-        <td><code>{{ s.cron }}</code></td>
-        <td>{{ "yes" if s.enabled else "no" }}</td>
-        <td>
-          <form action="/schedules/{{ s.id }}/delete" method="post" style="display:inline"
-                onsubmit="return confirm('Delete schedule?')">
-            <button class="btn btn-danger" type="submit">Delete</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Database</th>
+          <th scope="col">Cron</th>
+          <th scope="col">Enabled</th>
+          <th scope="col"><span class="sr-only">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in schedules %}
+        <tr>
+          <td>
+            {% set db_name = databases | selectattr('id', 'equalto', s.db_id) | map(attribute='name') | first %}
+            {{ db_name if db_name else s.db_id }}
+          </td>
+          <td class="mono">{{ s.cron }}</td>
+          <td>
+            {% if s.enabled %}
+              <span class="pill pill-ok"><span class="dot" aria-hidden="true"></span>enabled</span>
+            {% else %}
+              <span class="pill pill-mute">disabled</span>
+            {% endif %}
+          </td>
+          <td class="row-actions">
+            <form action="/schedules/{{ s.id }}/delete" method="post" style="display:inline"
+                  onsubmit="return confirm('Delete this schedule?')">
+              <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p class="muted">No schedules.</p>
+  <div class="empty">
+    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2"/>
+    </svg>
+    <h3>No schedules</h3>
+    <p>Use cron syntax to trigger backups on a recurring schedule.</p>
+  </div>
   {% endif %}
 </section>
 {% endblock %}
