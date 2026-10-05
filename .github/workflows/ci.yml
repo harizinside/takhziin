@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-test:
+    name: Lint + unit tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache uv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ matrix.python-version }}-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            uv-${{ matrix.python-version }}-${{ runner.os }}-
+            uv-${{ runner.os }}-
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh -s -- -y
+
+      - name: Install dependencies
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Ruff lint
+        run: ruff check src tests
+
+      - name: mypy
+        run: mypy src/takhziin || true  # mypy is best-effort in v1
+
+      - name: Pytest (unit only)
+        run: |
+          python -m pytest tests/ -v \
+            --ignore=tests/test_mariadb_dump.py \
+            --ignore=tests/test_mariadb_privileges.py \
+            --ignore=tests/test_postgres_dump.py \
+            --ignore=tests/test_mongo_dump.py

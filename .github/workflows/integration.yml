@@ -1,0 +1,41 @@
+name: Integration tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: Integration tests (docker compose)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh -s -- -y
+
+      - name: Install dependencies
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Bring up test databases
+        run: docker compose -f tests/docker-compose.yml up -d --wait
+
+      - name: Run integration tests
+        run: |
+          python -m pytest tests/ -v -m integration
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f tests/docker-compose.yml down -v --remove-orphans

@@ -1,0 +1,82 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "takhziin"
+version = "0.1.0"
+description = "Lean single-DBA backup CLI + web UI for MongoDB, PostgreSQL, MariaDB"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "harizinside" }]
+keywords = ["backup", "mongodb", "postgresql", "mariadb", "scheduling"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database",
+    "Topic :: System :: Archiving :: Backup",
+]
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "jinja2>=3.1",
+    "pydantic>=2.5",
+    "pymongo>=4.6",
+    "psycopg[binary]>=3.1",
+    "mysql-connector-python>=8.4",
+    "boto3>=1.34",
+    "apscheduler>=3.10",
+    "typer>=0.12",
+    "rich>=13.7",
+    "cryptography>=42",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "moto[s3]>=5",
+    "responses>=0.25",
+]
+
+[project.scripts]
+takhziin = "takhziin.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/takhziin"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict_optional = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+files = ["src/takhziin"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: tests that require docker compose services",
+    "slow: tests that take more than a few seconds",
+]

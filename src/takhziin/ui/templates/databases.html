@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <div class="card-header">
+    <h2>Databases</h2>
+    <a class="btn" href="/databases/new">+ New</a>
+  </div>
+  {% if databases %}
+  <table class="table">
+    <thead>
+      <tr><th>name</th><th>kind</th><th>host:port</th><th>database</th><th>storage</th><th>actions</th></tr>
+    </thead>
+    <tbody>
+      {% for db in databases %}
+      <tr>
+        <td><strong>{{ db.name }}</strong> <code class="muted">{{ db.id }}</code></td>
+        <td>{{ db.kind }}</td>
+        <td>{{ db.host }}:{{ db.port }}</td>
+        <td>{{ db.database }}</td>
+        <td>{{ db.storage_kind }}{% if db.s3 %} ({{ db.s3.bucket }}){% endif %}</td>
+        <td class="row-actions">
+          <form action="/databases/{{ db.id }}/test" method="post" style="display:inline">
+            <button class="btn btn-ghost" type="submit">Test</button>
+          </form>
+          <form action="/databases/{{ db.id }}/delete" method="post" style="display:inline"
+                onsubmit="return confirm('Remove {{ db.name }}? Schedules and runs will also be removed.')">
+            <button class="btn btn-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No databases yet. <a href="/databases/new">Add one</a>.</p>
+  {% endif %}
+</section>
+{% endblock %}

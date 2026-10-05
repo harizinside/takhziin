@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} · takhziin</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">takhziin</div>
+    <nav class="nav">
+      <a href="/">Dashboard</a>
+      <a href="/databases">Databases</a>
+      <a href="/backups">Backups</a>
+      <a href="/schedules">Schedules</a>
+      <a href="/notifications">Notifications</a>
+    </nav>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <div class="card-header"><h2>Backups</h2></div>
+  {% if runs %}
+  <table class="table">
+    <thead>
+      <tr><th>id</th><th>db</th><th>status</th><th>started</th><th>finished</th><th>size</th><th>storage</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for r in runs %}
+      <tr>
+        <td><code>{{ r.id }}</code></td>
+        <td>{{ databases | selectattr('id', 'equalto', r.db_id) | map(attribute='name') | first or r.db_id }}</td>
+        <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+        <td>{{ r.started_at | format_dt }}</td>
+        <td>{{ r.finished_at | format_dt }}</td>
+        <td>{{ r.size_bytes | human_size }}</td>
+        <td>{{ r.storage_kind }}</td>
+        <td><a href="/backups/{{ r.id }}">open</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No runs yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

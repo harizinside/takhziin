@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <div class="card-header"><h2>Schedules</h2></div>
+
+  <form action="/schedules/new" method="post" class="form-inline">
+    <select name="db_id">
+      {% for db in databases %}
+      <option value="{{ db.id }}">{{ db.name }} ({{ db.kind }})</option>
+      {% endfor %}
+    </select>
+    <input name="cron" placeholder="0 3 * * *" required>
+    <button class="btn" type="submit">Add</button>
+  </form>
+
+  {% if schedules %}
+  <table class="table">
+    <thead><tr><th>id</th><th>db</th><th>cron</th><th>enabled</th><th></th></tr></thead>
+    <tbody>
+      {% for s in schedules %}
+      <tr>
+        <td><code>{{ s.id }}</code></td>
+        <td>{{ databases | selectattr('id', 'equalto', s.db_id) | map(attribute='name') | first or s.db_id }}</td>
+        <td><code>{{ s.cron }}</code></td>
+        <td>{{ "yes" if s.enabled else "no" }}</td>
+        <td>
+          <form action="/schedules/{{ s.id }}/delete" method="post" style="display:inline"
+                onsubmit="return confirm('Delete schedule?')">
+            <button class="btn btn-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No schedules.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid-4">
+  <div class="card stat">
+    <div class="stat-label">Databases</div>
+    <div class="stat-value">{{ db_count }}</div>
+  </div>
+  <div class="card stat">
+    <div class="stat-label">Schedules</div>
+    <div class="stat-value">{{ schedule_count }}</div>
+  </div>
+  <div class="card stat stat-ok">
+    <div class="stat-label">Last 24h OK</div>
+    <div class="stat-value">{{ ok_24h }}</div>
+  </div>
+  <div class="card stat stat-fail">
+    <div class="stat-label">Last 24h Failed</div>
+    <div class="stat-value">{{ failed_24h }}</div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h2>Notifications</h2>
+  </div>
+  <div class="pill pill-{{ 'ok' if telegram_status.configured else 'mute' }}">
+    Telegram: {{ telegram_status.label }}
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-header"><h2>Last 10 runs</h2></div>
+  {% if last_10 %}
+  <table class="table">
+    <thead><tr><th>id</th><th>database</th><th>status</th><th>started</th><th>size</th><th></th></tr></thead>
+    <tbody>
+      {% for r in last_10 %}
+      <tr>
+        <td><code>{{ r.id }}</code></td>
+        <td><code>{{ r.db_id }}</code></td>
+        <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+        <td>{{ r.started_at | format_dt }}</td>
+        <td>{{ r.size_bytes | human_size }}</td>
+        <td><a href="/backups/{{ r.id }}">open</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No runs yet — schedule a backup or run one manually.</p>
+  {% endif %}
+</section>
+{% endblock %}
