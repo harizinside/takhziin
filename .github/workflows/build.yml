@@ -1,6 +1,6 @@
 name: Build & Publish ghcr.io/harizinside/takhziin
 
-on:
+"on":
   push:
     branches: [main]
     tags: ["v*"]
