@@ -2,20 +2,32 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+from takhziin.auth import SessionRow
 from takhziin.models import NotifierConfig
 from takhziin.notifiers.telegram import TelegramNotifier, TelegramSendError
 from takhziin.secrets import mask_token
 from takhziin.state import State
+from takhziin.ui.auth import csrf_token_for, require_session, verify_csrf
 
 router = APIRouter()
 
 
+async def _check_csrf(request: Request, session: SessionRow) -> None:
+    form = await request.form()
+    submitted = str(form.get("csrf_token", "")) if form else ""
+    if not verify_csrf(request, session, submitted):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "invalid csrf token")
+
+
 @router.get("/notifications", response_class=HTMLResponse)
-def notifications(request: Request) -> HTMLResponse:
+def notifications(
+    request: Request,
+    session: SessionRow = Depends(require_session),
+) -> HTMLResponse:
     state: State = request.app.state.state
     templates: Jinja2Templates = request.app.state.templates
     cfg = state.notifier
@@ -31,19 +43,31 @@ def notifications(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         request,
         "notifications.html",
-        {"title": "Notifications", "cfg": cfg, "masked": masked, "error": None, "ok": None},
+        {
+            "title": "Notifications",
+            "cfg": cfg,
+            "masked": masked,
+            "error": None,
+            "ok": None,
+            "session": session,
+            "csrf": csrf_token_for(request, session),
+        },
     )
 
 
 @router.post("/notifications/save")
-async def notifications_save(request: Request) -> RedirectResponse:
+async def notifications_save(
+    request: Request,
+    session: SessionRow = Depends(require_session),
+) -> RedirectResponse:
+    await _check_csrf(request, session)
     state: State = request.app.state.state
     secrets = request.app.state.secrets
     form = await request.form()
     bot_token = str(form.get("bot_token", "")).strip()
     chat_id = str(form.get("chat_id", "")).strip()
     proxy_url = str(form.get("proxy_url", "")).strip() or None
-    events = []
+    events: list[str] = []
     if str(form.get("on_success", "")) == "on":
         events.append("success")
     if str(form.get("on_failure", "")) == "on":
@@ -66,7 +90,11 @@ async def notifications_save(request: Request) -> RedirectResponse:
 
 
 @router.post("/notifications/test")
-async def notifications_test(request: Request) -> RedirectResponse:
+async def notifications_test(
+    request: Request,
+    session: SessionRow = Depends(require_session),
+) -> RedirectResponse:
+    await _check_csrf(request, session)
     state: State = request.app.state.state
     secrets = request.app.state.secrets
     if state.notifier is None:
@@ -88,7 +116,11 @@ async def notifications_test(request: Request) -> RedirectResponse:
 
 
 @router.post("/notifications/clear")
-def notifications_clear(request: Request) -> RedirectResponse:
+async def notifications_clear(
+    request: Request,
+    session: SessionRow = Depends(require_session),
+) -> RedirectResponse:
+    await _check_csrf(request, session)
     state: State = request.app.state.state
     state.notifier = None
     state.save()

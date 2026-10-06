@@ -1,8 +1,8 @@
 """FastAPI factory + shared helpers for the takhziin web UI.
 
-The web UI is intentionally minimal: server-rendered Jinja on top of the same
-`State` JSON file the CLI reads/writes. Single-user admin — no auth surface
-(operators put it behind SSH tunnel / reverse proxy).
+The web UI is server-rendered Jinja on top of the same ``State`` JSON file the
+CLI reads/writes. Routes are gated by ``require_session`` (cookie-based auth
+administered via ``AuthManager``); see ``takhziin/ui/auth.py``.
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from takhziin.auth import AuthManager
 from takhziin.config import load_settings
 from takhziin.secrets import Secrets
 from takhziin.state import State
@@ -51,6 +52,10 @@ def create_app() -> FastAPI:
     settings.ensure_dirs()
     state = State.load(settings.state_file)
     secrets = Secrets(master_key_file=settings.master_key_file)
+    auth = AuthManager(
+        db_file=settings.config_dir / "users.db",
+        secret_file=settings.config_dir / "session_secret.key",
+    )
 
     app = FastAPI(title="takhziin", version="0.1.0")
     templates = Jinja2Templates(directory=str(UI_DIR / "templates"))
@@ -60,6 +65,7 @@ def create_app() -> FastAPI:
     app.state.settings = settings
     app.state.state = state
     app.state.secrets = secrets
+    app.state.auth = auth
 
     # Mount static (CSS / JS)
     app.mount(

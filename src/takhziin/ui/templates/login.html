@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} · takhziin</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="login-page">
+  <main class="login-shell">
+    <section class="login-card card" aria-labelledby="login-heading">
+      <div class="login-brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <h1 id="login-heading">takhziin</h1>
+      </div>
+      <p class="muted" style="margin-top: 0">Sign in to manage your backups.</p>
+
+      {% if error %}
+        <div class="alert alert-error" role="alert" aria-live="polite">{{ error }}</div>
+      {% endif %}
+
+      <form action="/login" method="post" class="form">
+        <label>Username
+          <input name="username" value="{{ username }}" autocomplete="username" required autofocus>
+        </label>
+        <label>Password
+          <input name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="btn" type="submit">Sign in</button>
+      </form>
+
+      <p class="muted" style="margin-top: var(--space-lg); font-size: 0.8125rem">
+        New install? Set the admin password at the shell:
+        <code>takhziin auth passwd -u admin</code>.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

@@ -37,6 +37,8 @@ dependencies = [
     "rich>=13.7",
     "cryptography>=42",
     "python-multipart>=0.0.9",
+    "bcrypt>=4.1",
+    "itsdangerous>=2.2",
 ]
 
 [project.optional-dependencies]

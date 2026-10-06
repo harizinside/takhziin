@@ -15,8 +15,8 @@ Lean single-DBA backup CLI + minimal web UI for **MongoDB**, **PostgreSQL**, **M
 # install
 uv tool install takhziin          # or: pipx install takhziin
 
-# bootstrap dirs + master encryption key
-takhziin init
+# bootstrap dirs + master encryption key + admin password
+takhziin init                     # you'll be prompted for an admin password
 
 # add a database (interactive — prompts for missing fields)
 takhziin db add --kind=mariadb --name=orders --interactive
@@ -31,9 +31,43 @@ takhziin backup run <id>
 # schedule a cron backup
 takhziin schedule add <id> "0 3 * * *"
 
-# launch the web UI
+# launch the web UI — log in at the prompt with your admin password
 takhziin ui            # http://127.0.0.1:8765
 ```
+
+## Authentication (web UI)
+
+The web UI is gated by a session cookie (`takhzi_session`) issued by `POST /login`.
+Single default sign-in `admin`; password is bcrypt-hashed and stored in
+`$config_dir/users.db` (chmod 0600). Sessions live in the same SQLite DB and
+expire after 12 hours.
+
+Cookie format: `<token>.<base64url(HMAC(secret, token))>` where `secret` is
+the 32-byte key file (also 0600). Sessions are tamper-evident — an attacker
+who flips the token without knowing the secret fails the MAC check.
+
+CSRF: forms include a hidden `csrf_token` derived from the session token
+plus the same secret; tampering or cross-origin POSTs without the matching
+token get a 403.
+
+Manage credentials:
+
+```bash
+takhziin auth status              # show admin user + last login
+takhziin auth passwd              # rotate admin password (revokes all sessions)
+takhziin auth login               # verify credentials + print Cookie header for curl
+```
+
+What is and isn't protected:
+
+| Surface | Auth required |
+|---------|---------------|
+| `/login`, `/static/*` | No (login page + assets) |
+| All other UI routes (`/`, `/databases`, `/backups`, `/schedules`, `/notifications`) | Yes — `Depends(require_session)` |
+| Native dump tools invoked from CLI (`takhziin backup run`) | No — CLI runs under your shell user |
+| Telegram notifier delivery | Reads state file from the running process; not user-facing |
+
+Logout: `POST /logout` deletes the session row and clears the cookie.
 
 ## Install the native dump tools
 
@@ -173,11 +207,39 @@ src/takhziin/
 
 ## Security
 
+- **Web UI auth**: every route except `/login` and `/static/*` requires a valid signed session cookie. Passwords are bcrypt-hashed (cost 12); sessions are opaque random tokens (32 bytes), MAC'd with HMAC-SHA256, and live in SQLite with a 12-hour TTL. CSRF is enforced on every POST.
 - Master key at `~/.config/takhziin/master.key` is 32 random bytes (chmod 0600). **Loss is unrecoverable.**
 - DB passwords, Telegram bot_token and proxy_url are AES-GCM encrypted at rest in `state.json`.
+- Auth database at `~/.config/takhziin/users.db` is chmod 0600, session HMAC key at `~/.config/takhziin/session_secret.key` is chmod 0600.
 - Local backups are chmod 0600 on disk.
-- The web UI binds to `127.0.0.1` by default. No built-in auth — put it behind SSH tunnel / reverse proxy.
+- The web UI binds to `127.0.0.1` by default. For remote exposure, front it with TLS-terminating nginx + consider rotating `session_secret.key`.
 - No remote endpoint registration.
+
+## Architecture
+
+```
+src/takhziin/
+  cli.py            Typer entrypoint (init / db / backup / schedule / ui / notifier / tools / auth)
+  config.py         YAML + env var settings resolution
+  models.py         Pydantic schemas (Database, Schedule, BackupRecord, NotifierConfig)
+  state.py          JSON-file state with flock; AES-GCM-encrypted credentials
+  auth/             bcrypt + sqlite-backed auth (users.db), session cookies, CSRF
+  backup/__init__.py   BackupEngine protocol + run_backup orchestrator
+  backup/archive.py    tar.gz writer / reader; lock-step metadata.json schema
+  backup/mongo.py      mongodump subprocess wrapper
+  backup/postgres.py   pg_dump subprocess wrapper (psycopg connectivity probe)
+  backup/mariadb.py    mariadb-dump subprocess wrapper + privilege check (the gap fix)
+  storage/__init__.py  Storage protocol + registry
+  storage/local.py     filesystem adapter (atomic .tmp+rename, 0600)
+  storage/s3.py        boto3 adapter (any S3-compatible endpoint)
+  notifiers/telegram.py  urllib + MarkdownV2 transport; AES-encrypted bot_token at rest
+  scheduler.py        BackgroundScheduler wrapper; notifier hook after each record persists
+  ui/app.py           FastAPI factory (mounts AuthManager on app.state.auth)
+  ui/auth.py           require_session dependency + CSRF helpers
+  ui/routes.py        All HTTP routes (gated; CSRF on POST)
+  ui/templates/       Server-rendered Jinja (dark theme)
+  ui/static/          Vanilla CSS + tiny app.js
+```
 
 ## License
 

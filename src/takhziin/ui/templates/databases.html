@@ -34,10 +34,12 @@
           </td>
           <td class="row-actions">
             <form action="/databases/{{ db.id }}/test" method="post" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf }}">
               <button class="btn btn-ghost btn-sm" type="submit" aria-label="Test connection to {{ db.name }}">Test</button>
             </form>
             <form action="/databases/{{ db.id }}/delete" method="post" style="display:inline"
                   onsubmit="return confirm('Remove {{ db.name }}? Schedules and runs will also be removed.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf }}">
               <button class="btn btn-danger btn-sm" type="submit" aria-label="Delete {{ db.name }}">Delete</button>
             </form>
           </td>

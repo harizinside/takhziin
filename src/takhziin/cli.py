@@ -29,13 +29,14 @@ import os
 import socket
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
 from takhziin import __version__
+from takhziin.auth import AuthError, AuthManager
 from takhziin.backup import BackupError, run_backup
 from takhziin.config import (
     BIN_DIR_ENV,
@@ -72,12 +73,14 @@ backup_app = typer.Typer(help="Trigger and inspect backups.")
 schedule_app = typer.Typer(help="Manage cron schedules.")
 notifier_app = typer.Typer(help="Configure Telegram notifier.")
 tools_app = typer.Typer(help="Manage native dump binaries.")
+auth_app = typer.Typer(help="Manage admin authentication (web UI login).")
 
 app.add_typer(db_app, name="db")
 app.add_typer(backup_app, name="backup")
 app.add_typer(schedule_app, name="schedule")
 app.add_typer(notifier_app, name="notifier")
 app.add_typer(tools_app, name="tools")
+app.add_typer(auth_app, name="auth")
 
 
 # --- helpers ----------------------------------------------------------------
@@ -145,6 +148,14 @@ def _decrypt_password(secrets: Secrets, token: str) -> str:
     return secrets.decrypt(token)
 
 
+def _auth_manager(settings: Settings) -> AuthManager:
+    """Build an AuthManager rooted at the configured config_dir."""
+    return AuthManager(
+        db_file=settings.config_dir / "users.db",
+        secret_file=settings.config_dir / "session_secret.key",
+    )
+
+
 # --- init -------------------------------------------------------------------
 
 
@@ -183,8 +194,25 @@ def init(
     console.print(f"  config: {settings.config_dir}")
     console.print(f"  data:   {settings.data_dir}")
     console.print(f"  bin:    {settings.bin_dir}")
+
+    # Bootstrap admin user on first init.
+    auth = _auth_manager(settings)
+    if not auth.has_users():
+        console.print()
+        console.print("[bold]First-run admin password (web UI login)[/bold]")
+        pw1 = typer.prompt("  Password", hide_input=True, confirmation_prompt=False)
+        pw2 = typer.prompt("  Confirm password", hide_input=True, confirmation_prompt=False)
+        if pw1 != pw2:
+            raise typer.BadParameter("passwords do not match")
+        try:
+            auth.create_user("admin", pw1)
+        except AuthError as exc:
+            raise typer.BadParameter(str(exc)) from exc
+        console.print("[green]✓ admin user created[/green]")
     console.print()
-    console.print("Next step: [bold]takhziin db add[/bold] to register a database.")
+    console.print("Next steps:")
+    console.print("  [bold]takhziin db add[/bold] to register a database")
+    console.print("  [bold]takhziin ui[/bold] to open the web UI (login: admin)")
 
 
 # --- version + healthcheck ---------------------------------------------------
@@ -712,8 +740,8 @@ def tools_check() -> None:
 
 @app.command()
 def ui(
-    host: str | None = typer.Option(None, "--host", help="Bind host"),
-    port: int | None = typer.Option(None, "--port", help="Bind port"),
+    host: Optional[str] = typer.Option(None, "--host", help="Bind host"),
+    port: Optional[int] = typer.Option(None, "--port", help="Bind port"),
 ) -> None:
     """Start the takhziin web UI."""
     import uvicorn
@@ -733,6 +761,66 @@ def ui(
     server = uvicorn.Server(config)
     console.print(f"[green]takhziin UI starting on http://{target_host}:{target_port}[/green]")
     server.run()
+
+
+# --- auth -------------------------------------------------------------------
+
+
+@auth_app.command("status")
+def auth_status() -> None:
+    """Show whether an admin user is configured."""
+    settings = load_settings(skip_yaml=True)
+    auth = _auth_manager(settings)
+    if auth.has_users():
+        user = auth.get_user("admin")
+        console.print("[green]✓ admin user configured[/green]")
+        if user:
+            console.print(f"  username : admin")
+            console.print(f"  created  : {user.created_at}")
+            console.print(f"  last login: {user.last_login_at or '-'}")
+    else:
+        console.print("[yellow]no admin user[/yellow] — run [bold]takhziin init[/bold]")
+
+
+@auth_app.command("passwd")
+def auth_passwd(
+    username: str = typer.Option("admin", "--username", "-u", help="Username to update"),
+) -> None:
+    """Change the admin password (also invalidates all sessions)."""
+    settings = load_settings(skip_yaml=True)
+    auth = _auth_manager(settings)
+    if not auth.has_users():
+        raise typer.BadParameter("no admin user yet — run `takhziin init` first")
+    pw1 = typer.prompt("New password", hide_input=True)
+    pw2 = typer.prompt("Confirm new password", hide_input=True)
+    if pw1 != pw2:
+        raise typer.BadParameter("passwords do not match")
+    try:
+        auth.set_password(username, pw1)
+    except AuthError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    console.print(f"[green]✓ password updated for {username}[/green]")
+    console.print("All existing sessions have been revoked.")
+
+
+@auth_app.command("login")
+def auth_login(
+    username: str = typer.Option("admin", "--username", "-u"),
+) -> None:
+    """Verify credentials and print a session cookie (for curl scripts)."""
+    settings = load_settings(skip_yaml=True)
+    auth = _auth_manager(settings)
+    password = typer.prompt("Password", hide_input=True)
+    user = auth.verify_credentials(username, password)
+    if user is None:
+        console.print("[red]✗ invalid credentials[/red]")
+        raise typer.Exit(code=1)
+    session = auth.create_session(user.id)
+    cookie = auth.make_cookie_value(session.id)
+    console.print("[green]✓ login OK[/green]")
+    console.print("Use this Cookie header for curl:")
+    console.print(f"  Cookie: takhzi_session={cookie}")
+    console.print(f"Session expires at {session.expires_at}.")
 
 
 if __name__ == "__main__":

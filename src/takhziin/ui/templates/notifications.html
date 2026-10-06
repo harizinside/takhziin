@@ -33,6 +33,7 @@
   </div>
 
   <form action="/notifications/save" method="post" class="form">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
     <label>Bot token
       <input name="bot_token" type="password" placeholder="123456:ABCDEF..." {% if not cfg %}required{% endif %} autocomplete="off">
       <span class="help">Get this from <code>@BotFather</code> on Telegram.</span>
@@ -73,10 +74,12 @@
   </div>
   <p class="muted">Send a synthetic message to verify the bot is reachable.</p>
   <form action="/notifications/test" method="post" style="display:inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
     <button class="btn btn-ghost btn-sm" type="submit">Send test message</button>
   </form>
   <form action="/notifications/clear" method="post" style="display:inline; margin-left: 8px"
         onsubmit="return confirm('Clear notifier config?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
     <button class="btn btn-danger btn-sm" type="submit">Clear configuration</button>
   </form>
 </section>

@@ -20,6 +20,15 @@
         <a href="/schedules" {% if title == "Schedules" %}aria-current="page"{% endif %}>Schedules</a>
         <a href="/notifications" {% if title == "Notifications" %}aria-current="page"{% endif %}>Notifications</a>
       </nav>
+    {% if session is defined and session %}
+      <div class="session-bar">
+        <span class="muted session-user">{{ session.username }}</span>
+        <form action="/logout" method="post" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf }}">
+          <button class="btn btn-ghost btn-sm" type="submit">Sign out</button>
+        </form>
+      </div>
+    {% endif %}
   </header>
   <main class="container" id="main" role="main">
     {% block content %}{% endblock %}

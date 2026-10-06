@@ -6,6 +6,7 @@
   </div>
 
   <form action="/schedules/new" method="post" class="form-inline" aria-label="Add a schedule">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
     <label>Database
       <select name="db_id" required>
         {% for db in databases %}
@@ -50,6 +51,7 @@
           <td class="row-actions">
             <form action="/schedules/{{ s.id }}/delete" method="post" style="display:inline"
                   onsubmit="return confirm('Delete this schedule?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf }}">
               <button class="btn btn-danger btn-sm" type="submit">Delete</button>
             </form>
           </td>

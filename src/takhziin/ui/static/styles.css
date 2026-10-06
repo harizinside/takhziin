@@ -167,6 +167,22 @@ a:focus-visible {
   background: var(--color-muted);
   color: var(--color-foreground);
 }
+.topbar .session-bar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.session-bar .session-user {
+  font-size: 0.8125rem;
+  padding: 4px 10px;
+  background: var(--color-muted);
+  border-radius: 999px;
+}
+@media (max-width: 640px) {
+  .topbar { flex-wrap: wrap; }
+  .topbar .session-bar { margin-left: 0; width: 100%; justify-content: space-between; }
+}
 
 .container {
   max-width: 1100px;
@@ -488,6 +504,48 @@ fieldset legend {
 .row { display: flex; align-items: center; }
 .gap-2 { gap: var(--space-sm); }
 .space-between { display: flex; justify-content: space-between; align-items: center; }
+
+.alert {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  margin: var(--space-md) 0;
+  border: 1px solid transparent;
+}
+.alert-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* --- login shell ---------------------------------------------------------- */
+
+.login-page { min-height: 100vh; background: var(--color-background); }
+.login-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+}
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  margin: 0;
+}
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+.login-brand h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin: 0;
+}
+.login-brand .brand-mark { width: 24px; height: 24px; }
 
 /* --- Empty state ---------------------------------------------------------- */
 
